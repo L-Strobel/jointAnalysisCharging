@@ -36,11 +36,11 @@ The model output is stored in SQlite databases. They can be browsed with the "DB
 
 # Get started:
 
-1. Install the package. Run:
+1. Install the package. Run (from here):
     ```
     pip install -e .
     ```
 
 2. Install Gurobi and obtain a licence (https://www.gurobi.com/)
 
-3. Run the model: see *example.ipynb*
+3. Run the model: see *example.ipynb* (requires JupyterLab)

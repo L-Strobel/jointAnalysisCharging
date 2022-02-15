@@ -68,7 +68,7 @@ def getProcessed(dbName, region="Total"):
     c.execute("""SELECT *
                  FROM Simulation""")
     t = c.fetchone()
-    index = pd.date_range(start=t[0], end=t[1], freq=t[2], closed="left")
+    index = pd.date_range(start=t[0], end=t[1], freq=t[2], inclusive="left")
     
     # Get power
     sql = f"""SELECT Time, PowerMW
