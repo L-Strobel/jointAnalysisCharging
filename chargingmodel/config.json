@@ -1,7 +1,7 @@
 { 
   "chargingEfficiency": 0.85,
   "SOCStart": 1.0,
-  "fleetsize": 25000,
+  "fleetsize": 60000,
   "horizon": "full",
   "sensiAdjCap": 1.0,
   "sensiAdjP": 1.0,

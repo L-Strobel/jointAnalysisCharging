@@ -43,4 +43,4 @@ The model output is stored in SQlite databases. They can be browsed with the "DB
 
 2. Install Gurobi and obtain a licence (https://www.gurobi.com/)
 
-3. Run the model: see *example.ipynb* (requires JupyterLab)
+3. Run the model: see *example.ipynb* (Additional requirements: JupyterLab and Matplotlib)
