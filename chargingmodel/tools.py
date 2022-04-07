@@ -57,7 +57,7 @@ def createSegmentation(horizon, start=dt(2030, 1, 1), end=dt(2031, 1, 1), resolu
         return int(round((x - start).total_seconds() / res_in_secs)) 
     
     # Create time range
-    timeFrame = pd.date_range(start, end, closed="left", freq=resolution).to_pydatetime() # pylint: disable=no-member
+    timeFrame = pd.date_range(start, end, inclusive="left", freq=resolution).to_pydatetime() # pylint: disable=no-member
     # Split into segments of horizon length. Convert to integer.
     segments = [idxToInt(list(group)[-1]) + 1 for k, group in itertools.groupby(timeFrame, key=splitFunc)]
     return segments
@@ -115,7 +115,7 @@ def saveDB(*, agents, demands, slacks, dbName, startDate=dt(2030, 1, 1), endDate
 
     # Time series output, saved sparse
     tsData = []
-    timeCol = list(pd.date_range(startDate,endDate, closed="left", freq=resolution).to_pydatetime()) # pylint: disable=no-member
+    timeCol = list(pd.date_range(startDate,endDate, inclusive="left", freq=resolution).to_pydatetime()) # pylint: disable=no-member
     for agent in agents:
         for idx, val in demands[agent.name].items():
             p = int(val * 1000 )/1000 # Floor to 3 decimals
