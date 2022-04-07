@@ -1,4 +1,4 @@
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 
 import chargingmodel.preprocessing as preprocessing
 import chargingmodel.optimize as optimize
@@ -14,6 +14,7 @@ def run(*, scenario, config, dbName, regionIDs, aggFactors, n_worker, verbose):
         segments = tools.createSegmentation(config["horizon"])
 
     # Run for all chosen counties independently
+    queue = Queue()
     currentWork = []
     for i, regionID in enumerate(regionIDs):
         # Preprocess data
@@ -22,25 +23,31 @@ def run(*, scenario, config, dbName, regionIDs, aggFactors, n_worker, verbose):
 
         # Create process
         kwargs = {"agents": agents, "residualLoad": residualLoad,
-                  "config": config, "dbName": dbName, "segments": segments}
+                  "config": config, "queue": queue, "segments": segments}
         p = Process(target=runCounty, name=str(regionID),
                     kwargs=kwargs)
         currentWork.append(p)
 
         # Run porcesses, will wait for all to complete
         if len(currentWork) >= n_worker:
-            tools.runProcesses(currentWork, verbose)
+            results = tools.runProcesses(currentWork, verbose, queue)
             currentWork = []
+            
+            for result in results:
+                tools.saveDB(agents=result[0], demands=result[1], slacks=result[2], dbName=dbName)
+
     # Run remaining processes
     if currentWork:
-        tools.runProcesses(currentWork, verbose)
+        results = tools.runProcesses(currentWork, verbose, queue)
 
-def runCounty(*, agents, residualLoad, config, dbName, segments):
+        for result in results:
+            tools.saveDB(agents=result[0], demands=result[1], slacks=result[2], dbName=dbName)
+
+
+def runCounty(*, agents, residualLoad, config, queue, segments):
     demands, slacks = optimize.optimizeChargingQP_smpl(agents=agents, residualLoad=residualLoad,
                                                       eta=config["chargingEfficiency"],
                                                       SOCStart=config["SOCStart"],
                                                       deltaT=0.25, verbose=False,
                                                       segments=segments)
-
-    # Save
-    tools.saveDB(agents=agents, demands=demands, slacks=slacks, dbName=dbName)
+    queue.put((agents, demands, slacks))

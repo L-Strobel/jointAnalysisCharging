@@ -45,8 +45,7 @@ def run(*, scenario, config, dbName, regionIDs, aggFactors, n_worker, verbose, b
     currentWork = []
     for i, batch in enumerate(batches):
         kwargs = {"agents": batch, "residualLoad": residualLoad,
-                  "config": config, "dbName": dbName,
-                  "queue": queue, "segments": segments}
+                  "config": config, "queue": queue, "segments": segments}
         p = Process(target=runBatch, name="Batch_" + str(i),
                     kwargs=kwargs)
         currentWork.append(p)
@@ -56,25 +55,26 @@ def run(*, scenario, config, dbName, regionIDs, aggFactors, n_worker, verbose, b
             results = tools.runProcesses(currentWork, verbose, queue)
             currentWork = []
 
+            for result in results:
+                tools.saveDB(agents=result[0], demands=result[1], slacks=result[2], dbName=dbName)
+
             # Update residual load
-            for demands in results:
-                for demand in demands.values():
+            for result in results:
+                for demand in result[1].values():
                     for t, load in demand.items():
                         residualLoad[t] += load
             
     # Run remaining processes
     if currentWork:  
-        tools.runProcesses(currentWork, verbose, queue)
+        results = tools.runProcesses(currentWork, verbose, queue)
 
-def runBatch(*, agents, residualLoad, config, dbName, queue, segments):   
+        for result in results:
+            tools.saveDB(agents=result[0], demands=result[1], slacks=result[2], dbName=dbName)
+
+def runBatch(*, agents, residualLoad, config, queue, segments):   
     demands, slacks = optimize.optimizeChargingQP_smpl(agents=agents, residualLoad=residualLoad,
                                                       eta=config["chargingEfficiency"],
                                                       SOCStart=config["SOCStart"],
                                                       deltaT=0.25, verbose=False,
                                                       segments=segments)
-
-    # Save
-    tools.saveDB(agents=agents, demands=demands, slacks=slacks, dbName=dbName)
-
-    # Back to main thread
-    queue.put(demands)
+    queue.put((agents, demands, slacks))

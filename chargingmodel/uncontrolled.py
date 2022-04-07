@@ -1,4 +1,4 @@
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 
 import chargingmodel.preprocessing as preprocessing
 import chargingmodel.optimize as optimize
@@ -8,6 +8,7 @@ import chargingmodel.tools as tools
 # Every agent charges immediately and as much as possible after arriving at a charging station.
 # Runs for all regions in parrallel.
 def run(*, scenario, config, dbName, regionIDs, aggFactors, n_worker, verbose):
+    queue = Queue()
     currentWork = []
     for i, regionID in enumerate(regionIDs):
         # Preprocess data
@@ -15,24 +16,30 @@ def run(*, scenario, config, dbName, regionIDs, aggFactors, n_worker, verbose):
 
         # Create process
         kwargs = {"agents": agents, "config": config,
-                  "dbName": dbName}
+                  "queue": queue}
         p = Process(target=runCounty, name=str(regionID),
                     kwargs=kwargs)
         currentWork.append(p)
 
         # Run porcesses, will wait for all to complete
         if len(currentWork) >= n_worker:
-            tools.runProcesses(currentWork, verbose)
+            results = tools.runProcesses(currentWork, verbose, queue)
             currentWork = []
+            
+            for result in results:
+                tools.saveDB(agents=result[0], demands=result[1], slacks=result[2], dbName=dbName)
+
     # Run remaining processes
     if currentWork:
-        tools.runProcesses(currentWork, verbose)
+        results = tools.runProcesses(currentWork, verbose, queue)
 
-def runCounty(*, agents, config, dbName):
+        for result in results:
+            tools.saveDB(agents=result[0], demands=result[1], slacks=result[2], dbName=dbName)
+
+
+def runCounty(*, agents, config, queue):
     demands, slacks = optimize.immediate(agents=agents,
                                          eta=config["chargingEfficiency"],
                                          SOCStart=config["SOCStart"],
-                                         deltaT=0.25, verbose=False)
-
-    # Save
-    tools.saveDB(agents=agents, demands=demands, slacks=slacks, dbName=dbName)
+                                         deltaT=0.25)
+    queue.put((agents, demands, slacks))
