@@ -170,7 +170,7 @@ def optimizeChargingQP_smpl(*, agents, residualLoad, eta, SOCStart, deltaT, segm
 
     # Optimization
     cnt = 0 # For progressbar
-    env = grb.Env()
+    env = grb.Env(params={"OutputFlag": 0})
 
     for agent in agents:
         # Starting SOC
